@@ -63,15 +63,11 @@ def show_img(image, name='Image'):
 
 
 if __name__ == '__main__':
-    img1 = cv2.imread('1.jpg', 0)
-    img2 = cv2.imread('2.jpg', 0)
+    img1 = cv2.imread('1.jpg')
+    img2 = cv2.imread('2.jpg')
     rotated_im, h = rotate_images(img1, img2)
     subtracted = cv2.subtract(img2, rotated_im)
+    subtracted_back = cv2.subtract(rotated_im, img2)
+    added = cv2.add(subtracted, subtracted_back)
 
-    # Filter out noise
-    blurred = cv2.GaussianBlur(subtracted, (5, 5), cv2.BORDER_DEFAULT)
-
-    # Canny
-    edges = cv2.Canny(blurred, 200, 300)
-
-    show_img(edges)
+    show_img(added)
