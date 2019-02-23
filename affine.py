@@ -57,16 +57,18 @@ def show_img(image, name='Image'):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
+def get_mask(img1, img2):
+    rotated_im, h = rotate_images(img1, img2)
+    subtracted = cv2.subtract(img2, rotated_im)
+    subtracted_back = cv2.subtract(rotated_im, img2)
+    mask = cv2.add(subtracted, subtracted_back)
+
+    return mask
 
 if __name__ == '__main__':
     img1 = cv2.imread('1.jpg')
     img2 = cv2.imread('2.jpg')
-    rotated_im, h = rotate_images(img1, img2)
-    subtracted = cv2.subtract(img2, rotated_im)
-    subtracted = cv2.cvtColor(subtracted, cv2.COLOR_BGR2GRAY)
-    ret, thresh = cv2.threshold(subtracted, 50, 255, cv2.THRESH_TOZERO)
-    subtracted_back = cv2.subtract(rotated_im, img2)
-    subtracted_back = cv2.cvtColor(subtracted_back, cv2.COLOR_BGR2GRAY)
-    ret_back, thresh_back = cv2.threshold(subtracted_back, 50, 255, cv2.THRESH_TOZERO)
-    added = cv2.add(thresh, thresh_back)
-    show_img(added)
+
+    mask = get_mask(img1, img2)
+
+    show_img(mask)
