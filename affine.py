@@ -18,10 +18,6 @@ def orb(image1, image2, orb_size=500):
     # Sort matches by score
     matches.sort(key=lambda x: x.distance, reverse=False)
  
-    # best 10%
-    numGoodMatches = int(len(matches) * 0.1)
-    matches = matches[:numGoodMatches]
-     
     # Extract location of good matches
     points1 = np.zeros((len(matches), 2), dtype=np.float32)
     points2 = np.zeros((len(matches), 2), dtype=np.float32)
@@ -69,5 +65,4 @@ if __name__ == '__main__':
     subtracted = cv2.subtract(img2, rotated_im)
     subtracted_back = cv2.subtract(rotated_im, img2)
     added = cv2.add(subtracted, subtracted_back)
-
     show_img(added)
