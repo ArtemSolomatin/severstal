@@ -57,12 +57,17 @@ def show_img(image, name='Image'):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-
-if __name__ == '__main__':
-    img1 = cv2.imread('1.jpg')
-    img2 = cv2.imread('2.jpg')
+def generate_diff(img1, img2):
     rotated_im, h = rotate_images(img1, img2)
     subtracted = cv2.subtract(img2, rotated_im)
     subtracted_back = cv2.subtract(rotated_im, img2)
     added = cv2.add(subtracted, subtracted_back)
+    ret, th1 = cv2.threshold(rotated_im, 0, 255, cv2.THRESH_BINARY)
+    added[np.where(th1 < 255)] = 0
+    return added
+
+if __name__ == '__main__':
+    img1 = cv2.imread('1.jpg')
+    img2 = cv2.imread('2.jpg')
+    added = generate_diff(img1, img2)
     show_img(added)
