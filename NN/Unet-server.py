@@ -254,12 +254,15 @@ def boxes_from_mask(img, get_boxes=True):
     opening = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
     erosion = cv2.erode(opening,kernel,iterations = 1)
     opening = cv2.morphologyEx(erosion, cv2.MORPH_OPEN, kernel)
-    dilation = cv2.dilate(opening,kernel,iterations = 3)
+    dilation = cv2.dilate(opening,kernel,iterations = 1)
     labels = label(dilation, background=0)
     boxes = []
     for i in np.unique(labels)[1:]:
         arr = np.array(labels == i, dtype=np.uint8)
-        im2, contours, hierarchy = cv2.findContours(arr, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        if cv2.__version__ >= '4.0.0':
+            contours, hierarchy = cv2.findContours(arr, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        else:
+            im2, contours, hierarchy = cv2.findContours(arr, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         rect = cv2.minAreaRect(contours[0])
         box = cv2.boxPoints(rect)
         box = np.int0(box)
@@ -283,14 +286,11 @@ def draw_boxes(img, boxes):
                          upper left, upper right, lower left, lower right
     :return: None
     """
-    print(boxes)
-    plt.figure(figsize=(20,30))
-    plt.imshow(img, 'Greys_r')
     for box in boxes:
-        x_ = [box[0], box[2], box[6], box[4], box[0]]
-        y_ = [box[1], box[3], box[7], box[5], box[1]]
-        plt.plot(x_, y_, '-', color = 'b')
-    plt.show()
+        A = (box[0], box[1])
+        B = (box[6], box[7])
+        cv2.rectangle(img, A, B, (0, 255, 0, 0.5), 3)
+    return img
 
 if __name__ == '__main__':
     model = load_model('../saved_models/Unet_resnet18.hd5', custom_objects={'my_iou': my_iou})
@@ -299,5 +299,14 @@ if __name__ == '__main__':
                                          '../input/sleep/2.jpg')
     # draw(test_1, test_2, mask, pred, 0.8)
 
-    boxes = boxes_from_mask(pred)
-    draw_boxes(test_1, boxes)
+    prediction = np.array(pred > 0.8, dtype='uint8')
+
+    # Boxing rounding lost things
+    boxes = boxes_from_mask(prediction)
+
+    # Pillow Image to numpy array
+    original = cv2.cvtColor(np.asarray(test_1)[:,:,::-1], cv2.COLOR_RGB2BGR)
+
+    result = draw_boxes(original, boxes)
+    plt.imshow(result)
+    plt.show()
