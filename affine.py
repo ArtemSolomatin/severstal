@@ -4,21 +4,24 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
+GAUSS_DIMS = (5, 5)
+GAUSS_SIZE = 0
+
 
 def orb(image1, image2, nfeatures=500):
     # Detect ORB features and compute descriptors.
     orb = cv2.ORB_create(nfeatures=500, edgeThreshold=21, patchSize=21)
     keypoints1, descriptors1 = orb.detectAndCompute(image1, None)
     keypoints2, descriptors2 = orb.detectAndCompute(image2, None)
-     
+
     # Match features.
     # matcher = cv2.DescriptorMatcher_create(cv2.DESCRIPTOR_MATCHER_BRUTEFORCE_HAMMING)
     matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
     matches = matcher.match(descriptors1, descriptors2, None)
-     
+
     # Sort matches by score
     matches.sort(key=lambda x: x.distance, reverse=False)
- 
+
     # Extract location of good matches
     points1 = np.empty((len(matches), 2), dtype=np.float32)
     points2 = np.empty((len(matches), 2), dtype=np.float32)
@@ -41,7 +44,7 @@ def rotate_images(image1, image2):
 
     # Find homography
     h, mask = cv2.findHomography(points1, points2, cv2.RANSAC)
- 
+
     # Use homography
     height, width = image2.shape[:2] # channels are useless
     rotated_im = cv2.warpPerspective(image1, h, (width, height))
@@ -64,14 +67,23 @@ def generate_diff(img1, img2):
     added[np.where(th1 < 255)] = 0
     return added
 
+def morphology(gray):
+    """
+        Image should be passed in grayscale
+    """
+    iterations = 3
+    kernel = np.ones((1, 1), np.uint8)
+    dilated = cv2.dilate(gray, kernel, iterations=iterations)
+    eroded = cv2.erode(dilated, kernel, iterations=iterations)
+    return cv2.GaussianBlur(eroded, GAUSS_DIMS, GAUSS_SIZE)
+
+
 if __name__ == '__main__':
-    img1 = cv2.imread('3.jpg')
-    img2 = cv2.imread('4.jpg')
+    img1 = cv2.imread('datasets/red_bull/20190224_010928.jpg')
+    img2 = cv2.imread('datasets/red_bull/20190224_010931.jpg')
     added = generate_diff(img1, img2)
 
     gray = cv2.cvtColor(added, cv2.COLOR_BGR2GRAY)
-    kernel = np.ones((1, 1), np.uint8)
-    dilated = cv2.dilate(gray, kernel, iterations=1) 
-    eroded = cv2.erode(dilated, kernel, iterations=1) 
-    blurred = cv2.GaussianBlur(eroded, (5, 5), 2)
-    show_img(eroded)
+    blurred = morphology(gray)
+
+    show_img(blurred)
