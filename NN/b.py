@@ -13,6 +13,14 @@ from sklearn.model_selection import train_test_split
 from PIL import Image
 
 
+def show_img(image, name='Image'):
+    cv2.namedWindow(name, cv2.WND_PROP_FULLSCREEN)
+    cv2.setWindowProperty(name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    cv2.imshow(name, image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+
 def orb(image1, image2, orb_size=500):
     # Detect ORB features and compute descriptors.
     orb = cv2.ORB_create(orb_size)
@@ -183,7 +191,7 @@ def get_iou_vector(A, B):
 def my_iou(label, pred, thres=0.5):
     return tf.py_func(get_iou_vector, [label, pred > thres], tf.float64)
 
-def mask_pred(img1, img2, original_size):
+def mask_pred(model, img1, img2, original_size):
     mask = generate_diff(img1, img2)
     mask = np.expand_dims(mask, axis=0) / 255
     pred = model.predict(mask)
@@ -202,7 +210,7 @@ def predict(model, path_1, path_2):
     test_2_grey = np.array(test_2.resize((512, 512)).convert('L'))
 
     # Find mask of lost things
-    mask, pred = mask_pred(test_1_grey, test_2_grey, original_size)
+    mask, pred = mask_pred(model, test_1_grey, test_2_grey, original_size)
 
     return test_1, test_2, mask, pred
 
@@ -292,21 +300,25 @@ def draw_boxes(img, boxes):
         cv2.rectangle(img, A, B, (0, 255, 0, 0.5), 3)
     return img
 
-if __name__ == '__main__':
-    model = load_model('../saved_models/Unet_resnet18.hd5', custom_objects={'my_iou': my_iou})
 
-    test_1, test_2, mask, pred = predict(model, '../input/sleep/1.jpg',
-                                         '../input/sleep/2.jpg')
-    # draw(test_1, test_2, mask, pred, 0.8)
+# =============== MAIN =================
+# ======================================
 
-    prediction = np.array(pred > 0.8, dtype='uint8')
+
+def process(file1, file2, out):
+    model = load_model('./saved_models/Unet_resnet18.hd5', custom_objects={'my_iou': my_iou})
+    test_1, test_2, mask, pred = predict(model, file1, file2)
+
+    prediction = np.array(pred > 0.6, dtype='uint8')
 
     # Boxing rounding lost things
     boxes = boxes_from_mask(prediction)
 
     # Pillow Image to numpy array
-    original = cv2.cvtColor(np.asarray(test_1)[:,:,::-1], cv2.COLOR_RGB2BGR)
+    original = cv2.cvtColor(np.asarray(test_1), cv2.COLOR_RGB2BGR)
 
     result = draw_boxes(original, boxes)
-    plt.imshow(result)
-    plt.show()
+    if not out:
+        show_img(result)
+
+    return result
